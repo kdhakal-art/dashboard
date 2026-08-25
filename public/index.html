@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASPEN Build Board</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-row">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">ASPEN Build Board</span>
+    </div>
+
+    <div class="topbar-actions">
+      <div class="collector-state" id="collectorState">
+        <span class="pulse" id="collectorPulse"></span>
+        <span id="collectorText">Connecting</span>
+      </div>
+      <button class="btn" id="refreshBtn" type="button">
+        <span class="btn-spin" id="refreshSpin" aria-hidden="true"></span>
+        Refresh
+      </button>
+      <button class="btn btn-icon" id="themeBtn" type="button" aria-label="Switch theme">
+        <span id="themeGlyph">◐</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="topbar-row topbar-row-lower">
+    <nav class="tabs" id="tabs" role="tablist"></nav>
+    <div class="tally" id="tally"></div>
+  </div>
+</header>
+
+<main id="main">
+  <div class="loading" id="loading">Loading build data…</div>
+</main>
+
+<footer class="footer">
+  <span id="footerText">—</span>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
