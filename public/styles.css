@@ -156,6 +156,7 @@ body {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+.tally[hidden] { display: none; }
 .tally b { color: var(--ink); font-weight: 600; font-family: var(--mono); }
 
 /* ---------- layout ---------- */
@@ -428,6 +429,55 @@ main {
 }
 .tile.no-pipeline::before { display: none; }
 .tile.no-pipeline .env-name { color: var(--muted); }
+
+/* ---------- smoke test results tab ---------- */
+
+.smoke-panel { display: grid; gap: 18px; }
+.page-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.page-heading h1 { margin: 2px 0 4px; font-size: 25px; letter-spacing: -.03em; }
+.page-heading p { margin: 0; color: var(--ink-soft); }
+.eyebrow { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--run); }
+.page-actions { display: flex; gap: 8px; }
+.btn-secondary { background: var(--surface); }
+
+.smoke-env-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.smoke-env { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; padding: 13px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); text-align: left; cursor: pointer; box-shadow: var(--shadow); }
+.smoke-env:hover, .smoke-env.active { border-color: var(--run); box-shadow: 0 0 0 1px color-mix(in srgb, var(--run) 20%, transparent); }
+.smoke-env.missing { opacity: .55; }
+.smoke-env-name { font-family: var(--mono); font-size: 13px; font-weight: 700; }
+.smoke-env-status { font-family: var(--mono); font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.smoke-env-status.pass, .status-badge.pass { color: var(--ok); }
+.smoke-env-status.fail, .status-badge.fail { color: var(--fail); }
+.smoke-env-status.pending, .status-badge.pending { color: var(--unstable); }
+.smoke-env-status.unknown, .status-badge.unknown { color: var(--muted); }
+.smoke-env-count { grid-column: 1 / -1; font-family: var(--mono); font-size: 12px; color: var(--ink-soft); }
+
+.smoke-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.smoke-summary-grid article { min-height: 112px; padding: 15px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); }
+.smoke-summary-grid article::before { content: ""; display: block; width: 3px; height: 18px; margin-bottom: 12px; border-radius: 2px; background: var(--idle); }
+.smoke-summary-grid article.pass::before { background: var(--ok); }
+.smoke-summary-grid article.fail::before { background: var(--fail); }
+.smoke-summary-grid article.pending::before { background: var(--unstable); }
+.smoke-summary-grid strong { display: block; font-family: var(--mono); font-size: 22px; line-height: 1.2; }
+.smoke-summary-grid small { display: block; margin-top: 5px; color: var(--muted); }
+.summary-label { display: block; margin-bottom: 8px; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.smoke-overview { display: flex; align-items: center; justify-content: space-between; }
+.smoke-overview > div { align-self: flex-start; }
+.smoke-overview .status-badge { font-family: var(--mono); font-size: 11px; font-weight: 700; text-transform: uppercase; }
+
+.table-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; }
+.table-heading { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.table-heading h2 { margin: 0; font-size: 14px; }
+.table-heading span { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.table-scroll { overflow-x: auto; }
+.smoke-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.smoke-table th { padding: 10px 14px; color: var(--muted); background: var(--surface-2); text-align: left; font-size: 10px; letter-spacing: .07em; text-transform: uppercase; }
+.smoke-table td { padding: 12px 14px; border-top: 1px solid var(--line-soft); }
+.smoke-table a { color: var(--run); text-decoration: none; }
+.smoke-table a:hover { text-decoration: underline; }
+.scenario-name { font-family: var(--mono); font-weight: 600; }
+.status-badge { display: inline-flex; align-items: center; padding: 3px 8px; border: 1px solid currentColor; border-radius: 20px; font-family: var(--mono); font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.smoke-note { padding: 12px 14px; border-left: 3px solid var(--run); background: color-mix(in srgb, var(--run) 9%, var(--surface)); color: var(--ink-soft); font-size: 11px; }
 
 /* ---------- server status tab ---------- */
 

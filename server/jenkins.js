@@ -3,6 +3,7 @@
 const https = require('https');
 const http = require('http');
 const { credentials, fetchTimeoutMs, allowSelfSigned, historyDepth } = require('./config');
+const { parseSmokeDashboard } = require('./smoke');
 
 /**
  * Jenkins client.
@@ -171,6 +172,44 @@ async function readHistory({ product, urls }) {
   return buildHistory(urls[0], product);
 }
 
+function findEnvironmentBuild(builds, env) {
+  const normalized = env.toUpperCase();
+  return builds.find((build) => {
+    const parameters = Array.isArray(build.actions) ? build.actions : [];
+    const parameterAction = parameters.find((action) => action && Array.isArray(action.parameters));
+    return parameterAction?.parameters?.some((parameter) =>
+      parameter.name === 'ENV_NAME' && String(parameter.value).toUpperCase() === normalized
+    );
+  });
+}
+
+async function readSmokeReport(env, product = 'aspen') {
+  const jobUrl = `${jobBase('https://172.20.54.219:8443/job/Smoke_Test_Automation')}`;
+  const buildsUrl = `${jobUrl}/api/json?tree=${encodeURIComponent(
+    'builds[number,url,actions[parameters[name,value]]]{0,100}'
+  )}`;
+  const json = await getJson(buildsUrl, product);
+  const build = findEnvironmentBuild(json.builds || [], env);
+  if (!build) throw new Error(`No Smoke_Test_Automation build found for ${env}`);
+
+  const reportUrl = `${jobBase(build.url)}/Smoke_20Test_20Report/dashboard/index.html`;
+  const report = await request(reportUrl, {
+    headers: { Authorization: authHeader(product), Accept: 'text/html' },
+  });
+  if (report.statusCode < 200 || report.statusCode >= 300) {
+    throw new Error(`Smoke report HTTP ${report.statusCode} for ${env}`);
+  }
+
+  return {
+    env,
+    buildNumber: build.number,
+    buildUrl: jobBase(build.url),
+    reportUrl,
+    generatedAt: Date.parse(report.body.match(/Generated\s+([0-9]{4}-[0-9]{2}-[0-9]{2}T[^<]+)/)?.[1]) || null,
+    ...parseSmokeDashboard(report.body, reportUrl),
+  };
+}
+
 /** Reachability probe used by the Status tab. */
 async function probe(server) {
   const started = Date.now();
@@ -195,4 +234,4 @@ async function probe(server) {
   }
 }
 
-module.exports = { readPipeline, readHistory, probe };
+module.exports = { readPipeline, readHistory, readSmokeReport, probe };

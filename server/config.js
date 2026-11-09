@@ -11,6 +11,33 @@ function credential(name) {
   return { user, token: rest.join(':') };
 }
 
+function normalizeOracleConnectString(value) {
+  if (!value) return value;
+
+  const v = value.trim();
+  const lower = v.toLowerCase();
+
+  if (lower.startsWith('jdbc:oracle:thin:@')) {
+    return v.slice('jdbc:oracle:thin:@'.length);
+  }
+
+  if (lower.startsWith('jdbc:oracle:thin:')) {
+    return v.slice('jdbc:oracle:thin:'.length);
+  }
+
+  if (v.startsWith('@')) {
+    return v.slice(1);
+  }
+
+  return v;
+}
+
+const oracleConnectString = normalizeOracleConnectString(
+  process.env.DB_CONNECT_STRING ||
+  process.env.ORACLE_CONNECT_STRING ||
+  '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=XE)))'
+);
+
 module.exports = {
   // Credentials per Jenkins site. Never sent to the browser.
   credentials: {
@@ -18,6 +45,18 @@ module.exports = {
     'aspen-plus': credential('ASPEN_PLUS_AUTH'),
   },
 
+  dbType: (process.env.DB_TYPE || 'oracle').toLowerCase(),
+  oracle: {
+    user: process.env.DB_USER || process.env.ORACLE_USER,
+    password: process.env.DB_PASSWORD || process.env.ORACLE_PASSWORD,
+    connectString: oracleConnectString,
+    driverMode: (process.env.NODE_ORACLEDB_DRIVER_MODE || process.env.DB_DRIVER_MODE || 'thin').toLowerCase(),
+    libDir: process.env.ORACLE_CLIENT_LIB_DIR || process.env.ORACLE_HOME,
+    poolMin: Number(process.env.DB_POOL_MIN || 1),
+    poolMax: Number(process.env.DB_POOL_MAX || 5),
+    poolIncrement: Number(process.env.DB_POOL_INCREMENT || 1),
+    stmtCacheSize: Number(process.env.DB_STMT_CACHE_SIZE || 50),
+  },
   dbPath: process.env.DB_PATH || './dashboard.db',
   port: Number(process.env.PORT || 3001),
 

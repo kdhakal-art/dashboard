@@ -94,7 +94,7 @@ const PIPELINES = {
     test02: [`${ASPEN}/view/TEST02-Pipeline/job/TEST02-Multijob`, `${ASPEN}/view/TEST02-Pipeline/job/Maintenance_Page_Off_TEST02`],
     tt02: [`${ASPEN}/view/TT02-Pipeline/job/TT02-Multijob`, `${ASPEN}/view/TT02-Pipeline/job/Maintenance_Page_Off_TT02`],
     reg: [`${ASPEN}/view/REG-Pipeline/job/REG-Multijob`, `${ASPEN}/view/REG-Pipeline/job/Maintenance_Page_Off_REG`],
-    perf: [`${ASPEN}/view/PRF-Pipeline/job/PERF-Multijob`, `${ASPEN}/view/PRF-Pipeline/job/Maintenance_Page_Off_PRF`],
+    perf: [`${ASPEN}/view/PRF-Pipeline/job/PRF-Multijob`, `${ASPEN}/view/PRF-Pipeline/job/Maintenance_Page_Off_PRF`],
     'training-dev': [`${ASPEN}/view/TDV-Pipeline/job/TDV-Multijob`, `${ASPEN}/view/TDV-Pipeline/job/Maintenance_Page_Off_TDV`],
 
     dev03: [`${ASPEN}/view/DEV03-Pipeline/job/DEV03-Multijob`, `${ASPEN}/view/DEV03-Pipeline/job/Maintenance_Page_Off_DEV03`],

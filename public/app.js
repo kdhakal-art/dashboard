@@ -8,9 +8,11 @@
 
 const POLL_MS = 15_000; // cheap: hits SQLite, not Jenkins
 const API = '/api/status';
+const SMOKE_API = '/api/smoke';
 
 let snapshot = null;
 let activeTab = 'aspen';
+let activeSmokeEnv = 'DEV01';
 let tickTimer = null;
 
 /* ---------- formatting ---------- */
@@ -200,6 +202,72 @@ function responseTimeClass(ms) {
   return 'slow';
 }
 
+function smokeStatus(data) {
+  if (!data || data.failed > 0) return 'FAIL';
+  if (data.passed > 0 && data.pending === 0) return 'PASS';
+  if (data.pending > 0) return 'PENDING';
+  return 'UNKNOWN';
+}
+
+function renderSmokeResults() {
+  const smoke = snapshot.smoke || [];
+  const environments = ['DEV01', 'DEV02', 'DEV03', 'DEV04'];
+  const selected = smoke.find((item) => item.env === activeSmokeEnv) || null;
+  const summary = environments.map((env) => {
+    const item = smoke.find((candidate) => candidate.env === env);
+    const status = item ? smokeStatus(item) : 'UNKNOWN';
+    return `<button class="smoke-env ${item ? '' : 'missing'} ${selected?.env === env ? 'active' : ''}"
+      data-smoke-env="${env}" type="button">
+      <span class="smoke-env-name">${env}</span>
+      <span class="smoke-env-status ${status.toLowerCase()}">${status}</span>
+      <span class="smoke-env-count">${item ? `${item.passed}/${item.totalScripts}` : '—'}</span>
+    </button>`;
+  }).join('');
+
+  if (!selected) {
+    return `<section class="smoke-panel">
+      <div class="page-heading"><div><span class="eyebrow">Quality gate</span><h1>Smoke Test Results</h1></div></div>
+      <div class="smoke-env-list">${summary}</div>
+      <div class="empty">No smoke result has been collected for the selected environment.</div>
+    </section>`;
+  }
+
+  const rows = selected.tests.map((testCase) => `
+    <tr>
+      <td><span class="scenario-name">${escapeHtml(testCase.testCase)}</span></td>
+      <td><span class="status-badge ${testCase.status.toLowerCase()}">${escapeHtml(testCase.status)}</span></td>
+      <td>${Number(testCase.runs) || '—'}</td>
+      <td>${escapeHtml(testCase.lastRunAt || '—')}</td>
+      <td><a href="${escapeHtml(testCase.reportUrl || selected.reportUrl)}" target="_blank" rel="noopener">Open report</a></td>
+    </tr>`).join('');
+
+  const status = smokeStatus(selected);
+  const reportLink = `<a class="btn btn-secondary" href="${escapeHtml(selected.reportUrl)}" target="_blank" rel="noopener">Open Jenkins report</a>`;
+  const buildLink = `<a class="btn btn-secondary" href="${escapeHtml(selected.buildUrl)}" target="_blank" rel="noopener">Open build</a>`;
+
+  return `<section class="smoke-panel">
+    <div class="page-heading">
+      <div><span class="eyebrow">Quality gate</span><h1>Smoke Test Results</h1><p>Latest Jenkins report for ${escapeHtml(selected.env)}</p></div>
+      <div class="page-actions">${reportLink}${buildLink}</div>
+    </div>
+    <div class="smoke-env-list">${summary}</div>
+    <div class="smoke-summary-grid">
+      <article class="smoke-overview ${status.toLowerCase()}">
+        <div><span class="summary-label">Overall status</span><strong>${status}</strong></div>
+        <span class="status-badge ${status.toLowerCase()}">${status}</span>
+      </article>
+      <article><span class="summary-label">Scripts executed</span><strong>${selected.totalScripts}</strong><small>${selected.passed} passed · ${selected.failed} failed · ${selected.pending} pending</small></article>
+      <article><span class="summary-label">Latest report</span><strong>${lastSeenDisplay(selected.generatedAt).date}</strong><small>${lastSeenDisplay(selected.generatedAt).ago}</small></article>
+      <article><span class="summary-label">Jenkins build</span><strong>#${selected.buildNumber}</strong><small>Collected ${relativeTime(selected.fetchedAt)}</small></article>
+    </div>
+    <div class="table-card">
+      <div class="table-heading"><h2>Test scenarios</h2><span>${selected.tests.length} discovered scripts</span></div>
+      <div class="table-scroll"><table class="smoke-table"><thead><tr><th>Scenario</th><th>Status</th><th>Runs</th><th>Last run</th><th>Report</th></tr></thead><tbody>${rows || '<tr><td colspan="5">No test cases found.</td></tr>'}</tbody></table></div>
+    </div>
+    <div class="smoke-note">Script names and statuses are discovered dynamically from the Jenkins report. The latest build for each environment is stored in the dashboard database.</div>
+  </section>`;
+}
+
 function renderServers() {
   if (!snapshot.servers.length) {
     return `<div class="empty">No health checks recorded yet.</div>`;
@@ -232,7 +300,11 @@ function renderServers() {
 /* ---------- shell ---------- */
 
 function renderTabs() {
-  const tabs = [...snapshot.layout.products, { id: 'servers', name: 'Servers' }];
+  const tabs = [
+    ...snapshot.layout.products,
+    { id: 'smoke', name: 'Smoke Test Results' },
+    { id: 'servers', name: 'Servers' },
+  ];
   document.getElementById('tabs').innerHTML = tabs
     .map(
       (t) => `<button class="tab" role="tab" data-tab="${t.id}"
@@ -242,8 +314,9 @@ function renderTabs() {
 }
 
 function renderTally() {
+  const tally = document.getElementById('tally');
   const c = snapshot.counts;
-  document.getElementById('tally').innerHTML = `
+  tally.innerHTML = `
     <span><b>${c.running}</b> running</span>
     <span><b>${c.failed}</b> failing</span>
     <span><b>${c.total}</b> pipelines</span>
@@ -270,7 +343,8 @@ function render() {
   renderTabs();
   renderTally();
   renderCollectorState();
-  document.getElementById('main').innerHTML =
+  document.getElementById('boardView').innerHTML =
+    activeTab === 'smoke' ? renderSmokeResults() :
     activeTab === 'servers' ? renderServers() : renderBoard(activeTab);
 }
 
@@ -298,12 +372,17 @@ async function load({ force = false } = {}) {
     const res = await fetch(API);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     snapshot = await res.json();
+    const smokeRes = await fetch(SMOKE_API);
+    if (smokeRes.ok) {
+      const smokeData = await smokeRes.json();
+      snapshot.smoke = smokeData.smoke;
+    }
     render();
   } catch (err) {
     document.getElementById('collectorPulse').className = 'pulse broken';
     document.getElementById('collectorText').textContent = 'Cannot reach dashboard service';
     if (!snapshot) {
-      document.getElementById('main').innerHTML =
+      document.getElementById('boardView').innerHTML =
         `<div class="empty">Cannot reach the dashboard service on this machine.<br>
          Start it with <code>npm start</code>, then reload.</div>`;
     }
@@ -318,6 +397,13 @@ document.getElementById('tabs').addEventListener('click', (e) => {
   const btn = e.target.closest('[data-tab]');
   if (!btn) return;
   activeTab = btn.dataset.tab;
+  render();
+});
+
+document.getElementById('main').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-smoke-env]');
+  if (!btn) return;
+  activeSmokeEnv = btn.dataset.smokeEnv;
   render();
 });
 
